@@ -1,24 +1,29 @@
-// src/components/AuthForm.tsx
 'use client'
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useSession } from '../context/AuthContext' 
+import { useState } from 'react'
 
-// Definimos el tipo de props
 type AuthFormProps = {
   isLogin: boolean
 }
 
 export default function AuthForm(props: AuthFormProps) {
-  // Primero definimos el esquema dinámico basado en props.isLogin
+  const { login } = useSession()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
   const schema = z.object({
     email: z.string().email('Email inválido'),
     password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-    ...(!props.isLogin ? {
-      name: z.string().min(2, 'Nombre demasiado corto'),
-      company: z.string().min(2, 'Nombre de empresa inválido'),
-    } : {})
+    ...(!props.isLogin
+      ? {
+          name: z.string().min(2, 'Nombre demasiado corto'),
+          company: z.string().min(2, 'Nombre de empresa inválido'),
+        }
+      : {}),
   })
 
   const {
@@ -30,8 +35,27 @@ export default function AuthForm(props: AuthFormProps) {
   })
 
   const onSubmit = async (data: any) => {
-    // Lógica de autenticación
-    console.log(data)
+    setErrorMessage(null)
+    setLoading(true)
+    try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.access_token) {
+        login(result.access_token)
+      } else {
+        setErrorMessage(result.message || 'Credenciales inválidas')
+      }
+    } catch (error) {
+      setErrorMessage('Error al conectar con el servidor')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -86,11 +110,15 @@ export default function AuthForm(props: AuthFormProps) {
         />
         {errors.password && <p className="text-red-500 text-sm">{errors.password.message?.toString()}</p>}
       </div>
+
+      {errorMessage && <p className="text-red-600 text-center">{errorMessage}</p>}
+
       <button
         type="submit"
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        disabled={loading}
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
-        {props.isLogin ? 'Iniciar sesión' : 'Registrarse'}
+        {loading ? 'Procesando...' : props.isLogin ? 'Iniciar sesión' : 'Registrarse'}
       </button>
     </form>
   )

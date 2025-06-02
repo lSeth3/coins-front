@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 
 type AuthContextType = {
-  session: any
+  session: { token: string } | null
   login: (token: string) => void
   logout: () => void
 }
@@ -17,19 +17,17 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<any>(null)
+  const [session, setSession] = useState<{ token: string } | null>(null)
   const router = useRouter()
 
+  // Al montar el componente, eliminamos el token para forzar logout al refrescar
   useEffect(() => {
-    const token = Cookies.get('token')
-    if (token) {
-      // Verificar token con el backend
-      setSession({ token })
-    }
+    Cookies.remove('token')
+    setSession(null)
   }, [])
 
   const login = (token: string) => {
-    Cookies.set('token', token, { expires: 1 })
+    Cookies.set('token', token, { expires: 1 }) // Cookie válida 1 día
     setSession({ token })
     router.push('/dashboard')
   }
