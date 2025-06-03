@@ -1,17 +1,18 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import {EmployeeTable} from '@/components/EmployeeTable';
 
 export default async function EmployeesPage() {
-  const session = await auth()
+  const session = await auth();
   
   if (!session) {
-    redirect('/login')
+    redirect('/login');
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Empleados</h1>
-      {/* Tabla de empleados */}
+    <div className="p-6 bg-gray-100">
+      <h1 className="text-2xl font-bold mb-4">Empleados</h1>
+      <EmployeeTable />
     </div>
-  )
+  );
 }
